@@ -14,10 +14,10 @@ import SendIcon from "@material-ui/icons/Send";
 import InsertEmoticonIcon from "@material-ui/icons/InsertEmoticon";
 import { Picker } from "emoji-mart";
 import "emoji-mart/css/emoji-mart.css";
-import { formatAMPM, json_verify, nameTructed } from "../../utils/common";
+import { formatAMPM, nameTructed } from "../../utils/common";
 import { toArray } from "react-emoji-render";
 
-const ChatMessage = ({ senderId, senderName, text, timestamp }) => {
+const ChatMessage = ({ senderId, text, timestamp, senderName }) => {
   const mMeeting = useMeeting();
 
   const localParticipantId = mMeeting?.localParticipant?.id;
@@ -84,7 +84,7 @@ const ChatMessage = ({ senderId, senderName, text, timestamp }) => {
             variant={"caption"}
             style={{ color: "#ffffff80", fontStyle: "italic" }}
           >
-            {formatAMPM(new Date(parseInt(timestamp)))}
+            {formatAMPM(new Date(timestamp))}
           </Typography>
         </Box>
       </Box>
@@ -92,57 +92,39 @@ const ChatMessage = ({ senderId, senderName, text, timestamp }) => {
   );
 };
 
-const ChatMessages = ({ listHeight }) => {
+const ChatMessages = ({ listHeight, messages }) => {
   const listRef = useRef();
-
-  const scrollToBottom = (data) => {
-    if (!data) {
-      if (listRef.current) {
-        listRef.current.scrollTop = listRef.current.scrollHeight;
-      }
-    } else {
-      const { text } = data;
-
-      if (json_verify(text)) {
-        const { type } = JSON.parse(text);
-        if (type === "CHAT") {
-          if (listRef.current) {
-            listRef.current.scrollTop = listRef.current.scrollHeight;
-          }
-        }
-      }
+  const scrollToBottom = () => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   };
 
-  const mMeeting = useMeeting({
-    onChatMessage: scrollToBottom,
-  });
-
-  const messages = mMeeting?.messages;
-
   useEffect(() => {
     scrollToBottom();
-  }, []);
+  }, [messages]);
 
   return messages ? (
     <Box ref={listRef} style={{ overflowY: "scroll", height: listHeight }}>
       <Box p={2}>
-        {messages.map((message, i) => {
-          const { senderId, senderName, text, timestamp } = message;
-          if (json_verify(text)) {
-            const { type, data } = JSON.parse(text);
-            if (type === "CHAT") {
+        {messages.map(
+          ({ message, senderId, timestamp, senderName, id, topic }, i) => {
+            if (topic === "CHAT") {
               return (
                 <ChatMessage
-                  key={`chat_item_${i}`}
-                  {...{ senderId, senderName, text: data.message, timestamp }}
+                  key={`chat_item_${id}`}
+                  {...{
+                    senderId,
+                    text: message,
+                    timestamp,
+                    senderName,
+                  }}
                 />
               );
             }
             return <></>;
           }
-          return <></>;
-        })}
+        )}
       </Box>
     </Box>
   ) : (
@@ -150,16 +132,13 @@ const ChatMessages = ({ listHeight }) => {
   );
 };
 
-const ChatMessageInput = ({ inputHeight }) => {
+const ChatMessageInput = ({ inputHeight, publish }) => {
   const [messageText, setMessageText] = useState("");
   const [emojiOpen, setEmojiOpen] = useState(false);
 
   const input = useRef();
   const inputContainer = useRef();
 
-  const mMeeting = useMeeting();
-
-  const sendChatMessage = mMeeting?.sendChatMessage;
   const theme = useTheme();
 
   return (
@@ -219,12 +198,7 @@ const ChatMessageInput = ({ inputHeight }) => {
             const message = messageText.trim();
 
             if (message.length > 0) {
-              sendChatMessage(
-                JSON.stringify({
-                  type: "CHAT",
-                  data: { message },
-                })
-              );
+              publish(message);
               setTimeout(() => {
                 setMessageText("");
               }, 100);
@@ -254,12 +228,7 @@ const ChatMessageInput = ({ inputHeight }) => {
                   onClick={() => {
                     const message = messageText.trim();
                     if (message.length > 0) {
-                      sendChatMessage(
-                        JSON.stringify({
-                          type: "CHAT",
-                          data: { message },
-                        })
-                      );
+                      publish(message);
 
                       setTimeout(() => {
                         setMessageText("");
@@ -279,13 +248,18 @@ const ChatMessageInput = ({ inputHeight }) => {
   );
 };
 
-const ChatTabPanel = ({ panelHeight }) => {
+const ChatTabPanel = ({ panelHeight, mesg }) => {
   const inputHeight = 92;
   const listHeight = panelHeight - inputHeight;
+  const { pubsub } = useMeeting();
+
+  const publish = (mesg) => {
+    pubsub.publish("CHAT", mesg, { persist: true });
+  };
   return (
     <div>
-      <ChatMessages listHeight={listHeight} />
-      <ChatMessageInput inputHeight={inputHeight} />
+      <ChatMessages listHeight={listHeight} messages={mesg} />
+      <ChatMessageInput inputHeight={inputHeight} publish={publish} />
     </div>
   );
 };

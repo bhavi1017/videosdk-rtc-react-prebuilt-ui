@@ -80,7 +80,7 @@ const MeetingContainer = () => {
     useState(null);
   const { enqueueSnackbar } = useSnackbar();
   useWhiteBoard();
-
+  const [mesg, setMesg] = useState([]);
   useSortActiveParticipants();
   const { participantRaisedHand } = useRaisedHandParticipants();
 
@@ -130,6 +130,28 @@ const MeetingContainer = () => {
   const isTab = useIsTab();
   const isMobile = useIsMobile();
 
+  const handleChatMesg = (data) => {
+    const localParticipantId = mMeetingRef.current?.localParticipant?.id;
+
+    const { senderId, message, senderName } = data;
+
+    const isLocal = senderId === localParticipantId;
+
+    if (!isLocal) {
+      if (notificationSoundEnabled) {
+        new Audio(
+          `https://static.videosdk.live/prebuilt/notification.mp3`
+        ).play();
+      }
+      enqueueSnackbar(
+        trimSnackBarText(`${nameTructed(senderName, 15)} says: ${message}`)
+      );
+    }
+    setMesg((s) => {
+      return [...s, data];
+    });
+  };
+
   const _handleOnMeetingJoined = async () => {
     const { changeWebcam, changeMic, muteMic, disableWebcam } =
       mMeetingRef.current;
@@ -159,6 +181,15 @@ const MeetingContainer = () => {
         }, 500);
       });
     }
+
+    const data = await mMeetingRef.current.pubsub.subscribe(
+      "CHAT",
+      handleChatMesg
+    );
+    if (data) {
+      const { messages } = data;
+      setMesg(messages);
+    }
   };
 
   const _handleMeetingLeft = () => {
@@ -167,6 +198,8 @@ const MeetingContainer = () => {
     } else {
       setMeetingLeft(true);
     }
+
+    mMeetingRef.current.pubsub.unsubscribe("CHAT", handleChatMesg);
   };
 
   const _handleChatMessage = (data) => {
@@ -481,6 +514,7 @@ const MeetingContainer = () => {
                     topBarHeight,
                     width: sideBarContainerWidth,
                     height: containerHeight - topBarHeight,
+                    mesg,
                   }}
                 />
               </div>

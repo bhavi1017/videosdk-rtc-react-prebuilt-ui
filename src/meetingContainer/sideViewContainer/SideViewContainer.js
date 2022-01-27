@@ -19,7 +19,7 @@ import ActivitiesTabPanel from "./ActivitiesTabPanel";
 import useResponsiveSize from "../../utils/useResponsiveSize";
 import { useMeeting } from "@videosdk.live/react-sdk";
 
-const SideBarTabView = ({ width, height }) => {
+const SideBarTabView = ({ width, height, mesg }) => {
   const { sideBarMode, setSideBarMode } = useMeetingAppContext();
   const { participants } = useMeeting();
 
@@ -107,7 +107,7 @@ const SideBarTabView = ({ width, height }) => {
             {value === 0 ? (
               <ParticipantsTabPanel {...{ panelHeight, panelWidth: width }} />
             ) : value === 1 ? (
-              <ChatTabPanel {...{ panelHeight }} />
+              <ChatTabPanel {...{ panelHeight, mesg }} />
             ) : value === 2 ? (
               <ActivitiesTabPanel {...{ panelHeight }} />
             ) : null}
@@ -122,7 +122,7 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-const SideViewContainer = ({ topBarHeight, width, height }) => {
+const SideViewContainer = ({ topBarHeight, width, height, mesg }) => {
   const { sideBarMode, setSideBarMode, endCallContainerRef } =
     useMeetingAppContext();
   const isTab = useIsTab();
@@ -145,7 +145,7 @@ const SideViewContainer = ({ topBarHeight, width, height }) => {
       onClose={handleClose}
       TransitionComponent={Transition}
     >
-      <SideBarTabView {...{ width, height: height + topBarHeight }} />
+      <SideBarTabView {...{ width, height: height + topBarHeight, mesg }} />
     </Dialog>
   ) : (
     <div
@@ -170,7 +170,7 @@ const SideViewContainer = ({ topBarHeight, width, height }) => {
           display: "flex",
         }}
       >
-        <SideBarTabView {...{ width, height }} />
+        <SideBarTabView {...{ width, height, mesg }} />
       </div>
     </div>
   );
