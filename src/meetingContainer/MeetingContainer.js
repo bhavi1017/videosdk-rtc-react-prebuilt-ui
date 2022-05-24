@@ -534,7 +534,7 @@ const MeetingContainer = () => {
           console.log(`request to full screen is rejected due to ${e}`);
         });
       } else if (document.documentElement.webkitRequestFullscreen) {
-        /*  Safari */
+        /*  This for Safari */
         document.documentElement.webkitRequestFullscreen();
       } else if (document.documentElement.msRequestFullscreen) {
         /*  IE11 */
